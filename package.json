@@ -1,0 +1,36 @@
+{
+  "name": "awesome-web-worker",
+  "version": "1.0.0",
+  "description": "Perform compute intensive task in web worker to avoid UI lockup",
+  "main": "index.js",
+  "engines": {
+    "node": "11.0.0"
+  },
+  "scripts": {
+    "postinstall": "run-p install:app install:server",
+    "install:app": "cd app && npm install",
+    "install:server": "cd server && npm install",
+    "start": "cd server && npm run start",
+    "local": "cd server && npm run local",
+    "build": "cd app && npm run prod",
+    "build:dev": "cd app && npm run dev"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fouadbhatti/awesome-web-worker.git"
+  },
+  "keywords": [
+    "Awesome",
+    "hardworker",
+    ";)"
+  ],
+  "author": "Ahmed Fouad Bhatti",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/fouadbhatti/awesome-web-worker/issues"
+  },
+  "homepage": "https://github.com/fouadbhatti/awesome-web-worker#readme",
+  "devDependencies": {
+    "npm-run-all": "^4.0.2"
+  }
+}
