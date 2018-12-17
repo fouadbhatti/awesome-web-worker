@@ -8,7 +8,10 @@ const config =  {
     port: env.PORT || 8080,
     root: path.normalize(__dirname + '/..'),
   },
-  production: {}
+  production: {
+    port: env.PORT || 8080,
+    root: path.normalize(__dirname + '/..')
+  }
 };
 
 export default config[nodeEnv];
