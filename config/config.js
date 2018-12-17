@@ -6,12 +6,9 @@ export const nodeEnv = env.NODE_ENV || 'development';
 const config =  {
   development: {
     port: env.PORT || 8080,
-    root: path.normalize(__dirname + './../../'),
+    root: path.normalize(__dirname + '/..'),
   },
-  production: {
-    port: env.PORT || 8080,
-    root: path.normalize(__dirname + './../../'),
-  }
+  production: {}
 };
 
 export default config[nodeEnv];

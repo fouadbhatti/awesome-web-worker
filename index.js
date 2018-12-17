@@ -8,8 +8,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use(bodyParser.json());
 
-const publicPath  = config.root + 'public';
-app.use(express.static(publicPath));
+app.use(express.static('public'));
 
 // Listen
 app.listen(config.port, ()=> {
