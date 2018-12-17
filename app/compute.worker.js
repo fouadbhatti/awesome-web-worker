@@ -4,7 +4,7 @@ class insertionSort {
   constructor() {
     this.resetSort();
     this.pauseExecution = false;
-    this.sample = this.createSample(100);
+    this.sample = this.createSample(100000);
   }
 
   createSample(length) {
