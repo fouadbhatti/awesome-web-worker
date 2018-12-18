@@ -1,20 +1,23 @@
 import "@babel/polyfill";
 import * as Comlink from 'comlinkjs';
 import Rx from 'rxjs/Rx';
+import 'rxjs/add/observable/forkJoin';
 import Worker from './compute.worker.js';
-
 
 class App {
   constructor() {
+    const sampleSize = 100000;
+    this.sample = this.createSample(sampleSize);
     this.ui();
-    this.regiserEvents();
-    this.counter = 0;
+    this.registerEvents();
   }
 
-  regiserEvents() {
+  registerEvents() {
     this.btnStart.addEventListener('click', (event) => {
       const timer = this.input.value;
-      this.startWorker(timer);
+      console.log("GRAB A COFFEE - COMPUTING SORT ☕");
+      this.sort(this.sample, timer)
+        .subscribe();
     });
   }
 
@@ -24,57 +27,63 @@ class App {
     this.btnStart.appendChild(tStart);
 
     this.input = document.createElement("INPUT");
+    this.input.value = 1000;
     document.body.appendChild(this.btnStart);
     document.body.appendChild(this.input);
   }
 
-  stopWorker() {
-    this.workerInstance.terminate();
+  createSample(length) {
+    return Array(length).fill().map(() => Math.round(Math.random() * length));
   }
 
-  randomNumber(length = 100000) {
-    return Math.round(Math.random() * length);
+  async spawnWorker(sample) {
+    const workerInstance = new Worker();
+    const insertionSortClass = Comlink.proxy(workerInstance);
+    const sortInstance = this.sortInstance = await new insertionSortClass();
+    return await sortInstance.sort(sample);
   }
 
-  async startWorker(timer) {
-    this.workerInstance = new Worker();
-    const insertionSortClass = Comlink.proxy(this.workerInstance);
-    this.sortInstance = await new insertionSortClass();
+  initialSort(sample) {
+    return Rx.Observable.defer(this.spawnWorker.bind(this, sample));
+  }
 
-    this.startSorting().then((data) => {
+  streamOfRandomNumbers(sampleSize = 100000, delay = 1000) {
+    return Rx.Observable.interval(delay)
+      .map((val) => Math.round(Math.random() * sampleSize))
+  }
+
+  sort(sample, timer) {
+    const initialSortT0 = performance.now();
+    let initialSort$ = this.initialSort(sample).do((data) => {
+      const initialSortT1 = performance.now();
       console.log(data);
+      console.log(`SORTING COMPLETED - TIME TAKEN: ${initialSortT1 - initialSortT0} milliseconds.`);
+      console.log('-------------------------------------------------------------------------------');
     });
+    let sorted$ = new Rx.BehaviorSubject(null);
+    let streamOfRandomNumbers$ = this.streamOfRandomNumbers(sample.length, timer);
 
-    let interval = setInterval(() => {
-      this.restart();
-      this.counter++;
-      if (this.counter === 10) clearInterval(interval);
-    }, timer);
-  }
-
-  async restart() {
-    let pause = await this.sortInstance.pauseSort();
-    console.log('Paused Sort');
-    let addRandom = await this.sortInstance.addToSort(this.randomNumber());
-    console.log('Added Random Number');
-    let restart = this.startSorting().then((data) => {
-      console.log('Continuing Sort');
-      console.log(data);
-    });
-  };
-
-  startSorting() {
-    console.log('Started Sort');
-    let sortInstance = this.sortInstance;
-    return new Promise((resolve, reject) => {
-      this.sortT0 = performance.now();
-      sortInstance.sort(Comlink.proxyValue((data) => {
-        if (data.message == 'Array Sorted') {
-          this.sortT1 = performance.now();
-          console.log(`SORT PERFORMANCE: ${this.sortT1 - this.sortT0 }`);
-        }
-        resolve(data);
-      }));
+    return initialSort$.combineLatest(sorted$, (initialSortedArray, updatedSortedArray) => {
+      if (updatedSortedArray != null) return updatedSortedArray;
+      return initialSortedArray;
+    })
+    .zip(streamOfRandomNumbers$, (sortedArr, randomNumber) => {
+      console.log(`ADDING RANDOM NUMBER TO ARRAY: ${randomNumber}`);
+      const partialSortedArr = [randomNumber, ...sortedArr];
+      const runningSorter = async (array) => {
+        const runningSortT0 = performance.now();
+        const runningSort =  await this.sortInstance.runningSort(array);
+        const runningSortT1 = performance.now();
+        console.log(runningSort);
+        console.log(`SUCCESSIVE SORTING COMPLETED - TIME TAKEN: ${runningSortT1 - runningSortT0} milliseconds.`);
+        console.log('-----------------------------------------------------------------------------------------');
+        return runningSort;
+      };
+      return Rx.Observable.defer(runningSorter.bind(this, partialSortedArr));
+    })
+    .flatMap(runningSort$ => runningSort$)
+    .do((_sortedArray) => {
+      sorted$.next(_sortedArray)
     });
   }
 }
